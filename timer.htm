@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>drag and drop</title>
+    <script type="text/javascript" src="https://unpkg.com/rxjs/bundles/rxjs.umd.min.js"></script>
+  </head>
+  <body>
+    <button id="start">start</button>
+    <button id="stop">stop</button>
+    <button id="reset">reset</button>
+    <span id="minutes"></span>:<span id="seconds"></span>:<span id="mseconds"></span>
+
+    <script type="text/javascript">
+      // https://rxjs-dev.firebaseapp.com/api/operators/switchMapTo
+      var fromEvent = rxjs.fromEvent
+      var interval = rxjs.interval
+      var map = rxjs.operators.map
+      var scan = rxjs.operators.scan
+      var merge = rxjs.operators.merge
+      var mapTo = rxjs.operators.mapTo
+      var flatMap = rxjs.operators.flatMap
+      var startWith = rxjs.operators.startWith
+      var takeUntil = rxjs.operators.takeUntil
+      var switchMapTo = rxjs.operators.switchMapTo
+
+      var $start = document.querySelector('#start')
+      var $stop = document.querySelector('#stop')
+      var $reset = document.querySelector('#reset')
+
+      var start$ = fromEvent($start, 'click')
+      var stop$ = fromEvent($stop, 'click')
+      var reset$ = fromEvent($reset, 'click')
+
+      var init = 0
+      var inc = function(mem) {return mem + 1}
+      var zero = function(mem) {return 0}
+      var render = function(val) {
+        document.querySelector('#mseconds').innerText = Math.floor(val % 100)
+        document.querySelector('#seconds').innerText = Math.floor(val / 100)
+        document.querySelector('#minutes').innerText = Math.floor(val / 100 / 60)
+      }
+
+      var interval$ = interval(10)
+      // stop和reset都可以停止
+      var stopOrReset$ = rxjs.Observable.create().pipe(merge(stop$, reset$))
+      var pausible$ = interval$.pipe(takeUntil(stopOrReset$))
+      var incOrReset$ = rxjs.Observable.create().pipe(merge(pausible$.pipe(mapTo(inc)), reset$.pipe(mapTo(zero))))
+
+      start$
+        .pipe(switchMapTo(incOrReset$))
+        .pipe(startWith(init))
+        .pipe(scan(function(mem, func) {
+          return func(mem)
+        }))
+        .subscribe(function(data) {
+          render(data);
+        }, function(err) {
+          console.log('err:', err);
+        })
+
+    </script>
+  </body>
+</html>

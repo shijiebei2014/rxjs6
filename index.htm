@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>drag and drop</title>
+    <script type="text/javascript" src="https://unpkg.com/rxjs/bundles/rxjs.umd.min.js"></script>
+  </head>
+  <body>
+    <div style="position:absolute;width: 100px;height: 100px;background-color: blue;color: white;text-align: center;line-height: 100px;">drag me</div>
+
+    <script type="text/javascript">
+      var fromEvent = rxjs.fromEvent
+      var map = rxjs.operators.map
+      var flatMap = rxjs.operators.flatMap
+      var takeUntil = rxjs.operators.takeUntil
+
+      var $div = document.querySelector('div')
+
+      var mousedown$ = fromEvent($div, 'mousedown')
+      var mousemove$ = fromEvent($div, 'mousemove')
+      var mouseup$ = fromEvent($div, 'mouseup')
+
+      var drop$ = mousemove$.pipe(takeUntil(mouseup$))
+
+      mousedown$.pipe(flatMap(function(e) {
+        var startX = e.offsetX
+        var startY = e.offsetY
+        return drop$.pipe(map(function(e) {
+          return {
+            left: e.clientX - startX,
+            top: e.clientY - startY
+          }
+        }))
+      })).subscribe(function(data) {
+        $div.style.left = data.left + 'px'
+        $div.style.top = data.top + 'px'
+      })
+    </script>
+  </body>
+</html>
